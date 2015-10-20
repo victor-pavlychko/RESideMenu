@@ -342,7 +342,7 @@ typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
         }
 
         self.contentViewContainer.center = CGPointMake(self.contentViewOffsetCenterX + self.contentViewWidth,
-                                                       self.contentViewOffsetCenterY + self.contentViewContainer.center.y);
+                                                       self.contentViewOffsetCenterY + self.contentViewHeight / 2);
         self.menuViewContainer.alpha = !self.fadeMenuView ?: 1.0f;
         self.contentViewContainer.alpha = self.contentViewFadeOutAlpha;
         self.menuViewContainer.transform = CGAffineTransformIdentity;
@@ -388,7 +388,7 @@ typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
             self.contentViewContainer.transform = CGAffineTransformIdentity;
         }
         self.contentViewContainer.center = CGPointMake(-self.contentViewOffsetCenterX,
-                                                       self.contentViewOffsetCenterY + self.contentViewContainer.center.y);
+                                                       self.contentViewOffsetCenterY + self.contentViewHeight / 2);
         
         self.menuViewContainer.alpha = !self.fadeMenuView ?: 1.0f;
         self.contentViewContainer.alpha = self.contentViewFadeOutAlpha;
@@ -638,8 +638,39 @@ typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
         }
         delta = MIN(fabs(delta), 1.6);
         
-        CGFloat contentViewScale = self.scaleContentView ? 1 - ((1 - self.contentViewScaleValue) * delta) : 1;
+        if (!self.bouncesHorizontally && self.visible) {
+            if (self.contentViewContainer.frame.origin.x > self.contentViewContainer.frame.size.width / 2.0)
+                point.x = MIN(0.0, point.x);
+            
+            if (self.contentViewContainer.frame.origin.x < -(self.contentViewContainer.frame.size.width / 2.0))
+                point.x = MAX(0.0, point.x);
+        }
+
+        // Limit size
+        if (point.x < 0) {
+            point.x = MAX(point.x, -[UIScreen mainScreen].bounds.size.height);
+        } else {
+            point.x = MIN(point.x, [UIScreen mainScreen].bounds.size.height);
+        }
+        [recognizer setTranslation:point inView:self.view];
         
+        if (!self.didNotifyDelegate) {
+            if (point.x > 0) {
+                if (!self.visible && [self.delegate conformsToProtocol:@protocol(RESideMenuDelegate)] && [self.delegate respondsToSelector:@selector(sideMenu:willShowMenuViewController:)]) {
+                    self.activeSide = RESideMenuActiveSideLeft;
+                    [self.delegate sideMenu:self willShowMenuViewController:self.leftMenuViewController];
+                }
+            }
+            if (point.x < 0) {
+                if (!self.visible && [self.delegate conformsToProtocol:@protocol(RESideMenuDelegate)] && [self.delegate respondsToSelector:@selector(sideMenu:willShowMenuViewController:)]) {
+                    self.activeSide = RESideMenuActiveSideRight;
+                    [self.delegate sideMenu:self willShowMenuViewController:self.rightMenuViewController];
+                }
+            }
+            self.didNotifyDelegate = YES;
+        }
+        
+        CGFloat contentViewScale = self.scaleContentView ? 1 - ((1 - self.contentViewScaleValue) * delta) : 1;
         CGFloat backgroundViewScale = 1.7f - (0.7f * delta);
         CGFloat menuViewScale = 1.5f - (0.5f * delta);
 
@@ -666,44 +697,13 @@ typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
             }
         }
         
-       if (!self.bouncesHorizontally && self.visible) {
-           if (self.contentViewContainer.frame.origin.x > self.contentViewContainer.frame.size.width / 2.0)
-               point.x = MIN(0.0, point.x);
-           
-            if (self.contentViewContainer.frame.origin.x < -(self.contentViewContainer.frame.size.width / 2.0))
-                point.x = MAX(0.0, point.x);
-        }
-        
-        // Limit size
-        //
-        if (point.x < 0) {
-            point.x = MAX(point.x, -[UIScreen mainScreen].bounds.size.height);
-        } else {
-            point.x = MIN(point.x, [UIScreen mainScreen].bounds.size.height);
-        }
-        [recognizer setTranslation:point inView:self.view];
-        
-        if (!self.didNotifyDelegate) {
-            if (point.x > 0) {
-                if (!self.visible && [self.delegate conformsToProtocol:@protocol(RESideMenuDelegate)] && [self.delegate respondsToSelector:@selector(sideMenu:willShowMenuViewController:)]) {
-                    [self.delegate sideMenu:self willShowMenuViewController:self.leftMenuViewController];
-                }
-            }
-            if (point.x < 0) {
-                if (!self.visible && [self.delegate conformsToProtocol:@protocol(RESideMenuDelegate)] && [self.delegate respondsToSelector:@selector(sideMenu:willShowMenuViewController:)]) {
-                    [self.delegate sideMenu:self willShowMenuViewController:self.rightMenuViewController];
-                }
-            }
-            self.didNotifyDelegate = YES;
-        }
-        
         if (contentViewScale > 1) {
             CGFloat oppositeScale = (1 - (contentViewScale - 1));
             self.contentViewContainer.transform = CGAffineTransformMakeScale(oppositeScale, oppositeScale);
-            self.contentViewContainer.transform = CGAffineTransformTranslate(self.contentViewContainer.transform, point.x, 0);
+            self.contentViewContainer.transform = CGAffineTransformTranslate(self.contentViewContainer.transform, point.x, delta * self.contentViewInLandscapeOffsetCenterY);
         } else {
             self.contentViewContainer.transform = CGAffineTransformMakeScale(contentViewScale, contentViewScale);
-            self.contentViewContainer.transform = CGAffineTransformTranslate(self.contentViewContainer.transform, point.x, 0);
+            self.contentViewContainer.transform = CGAffineTransformTranslate(self.contentViewContainer.transform, point.x, delta * self.contentViewInLandscapeOffsetCenterY);
         }
         
         self.leftMenuViewController.view.hidden = self.contentViewContainer.frame.origin.x < 0;
@@ -850,10 +850,10 @@ typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
         CGPoint center;
         if (self.leftMenuVisible) {
             center = CGPointMake(self.contentViewOffsetCenterX + self.contentViewWidth,
-                                 self.contentViewOffsetCenterY + self.contentViewContainer.center.y);
+                                 self.contentViewOffsetCenterY + self.contentViewHeight / 2);
         } else {
             center = CGPointMake(-self.contentViewOffsetCenterX,
-                                 self.contentViewOffsetCenterY + self.contentViewContainer.center.y);
+                                 self.contentViewOffsetCenterY + self.contentViewHeight / 2);
         }
         
         self.contentViewContainer.center = center;
