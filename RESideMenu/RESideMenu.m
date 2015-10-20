@@ -696,16 +696,20 @@ typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
                 self.backgroundImageView.transform = CGAffineTransformIdentity;
             }
         }
-        
-        if (contentViewScale > 1) {
-            CGFloat oppositeScale = (1 - (contentViewScale - 1));
-            self.contentViewContainer.transform = CGAffineTransformMakeScale(oppositeScale, oppositeScale);
-            self.contentViewContainer.transform = CGAffineTransformTranslate(self.contentViewContainer.transform, point.x, delta * self.contentViewInLandscapeOffsetCenterY);
-        } else {
-            self.contentViewContainer.transform = CGAffineTransformMakeScale(contentViewScale, contentViewScale);
-            self.contentViewContainer.transform = CGAffineTransformTranslate(self.contentViewContainer.transform, point.x, delta * self.contentViewInLandscapeOffsetCenterY);
+
+        if (contentViewScale > 1)
+        {
+            contentViewScale = (1 - (contentViewScale - 1));
         }
-        
+
+        CGFloat contentViewOffsetCenterY = self.leftMenuVisible || self.rightMenuVisible
+            ? (-(1 - delta) * self.contentViewOffsetCenterY)
+            : (delta * self.contentViewOffsetCenterY);
+
+        self.contentViewContainer.transform = CGAffineTransformMakeTranslation(0, 0);
+        self.contentViewContainer.transform = CGAffineTransformScale(self.contentViewContainer.transform, contentViewScale, contentViewScale);
+        self.contentViewContainer.transform = CGAffineTransformTranslate(self.contentViewContainer.transform, point.x, contentViewOffsetCenterY);
+
         self.leftMenuViewController.view.hidden = self.contentViewContainer.frame.origin.x < 0;
         self.rightMenuViewController.view.hidden = self.contentViewContainer.frame.origin.x > 0;
         
