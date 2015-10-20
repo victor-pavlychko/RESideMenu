@@ -61,9 +61,6 @@
 @property (assign, readwrite, nonatomic) IBInspectable CGFloat contentViewShadowOpacity;
 @property (assign, readwrite, nonatomic) IBInspectable CGFloat contentViewShadowRadius;
 @property (assign, readwrite, nonatomic) IBInspectable CGFloat contentViewFadeOutAlpha;
-@property (assign, readwrite, nonatomic) IBInspectable CGFloat contentViewScaleValue;
-@property (assign, readwrite, nonatomic) IBInspectable CGFloat contentViewInLandscapeOffsetCenterX;
-@property (assign, readwrite, nonatomic) IBInspectable CGFloat contentViewInPortraitOffsetCenterX;
 @property (assign, readwrite, nonatomic) IBInspectable CGFloat parallaxMenuMinimumRelativeValue;
 @property (assign, readwrite, nonatomic) IBInspectable CGFloat parallaxMenuMaximumRelativeValue;
 @property (assign, readwrite, nonatomic) IBInspectable CGFloat parallaxContentMinimumRelativeValue;
@@ -73,6 +70,19 @@
 @property (assign, readwrite, nonatomic) IBInspectable BOOL bouncesHorizontally;
 @property (assign, readwrite, nonatomic) UIStatusBarStyle menuPreferredStatusBarStyle;
 @property (assign, readwrite, nonatomic) IBInspectable BOOL menuPrefersStatusBarHidden;
+
+@property (assign, readwrite, nonatomic) IBInspectable CGFloat leftMenuPortraitContentViewDistanceTop;
+@property (assign, readwrite, nonatomic) IBInspectable CGFloat leftMenuPortraitContentViewDistanceBottom;
+@property (assign, readwrite, nonatomic) IBInspectable CGFloat leftMenuPortraitContentViewDistanceSide;
+@property (assign, readwrite, nonatomic) IBInspectable CGFloat rightMenuPortraitContentViewDistanceTop;
+@property (assign, readwrite, nonatomic) IBInspectable CGFloat rightMenuPortraitContentViewDistanceBottom;
+@property (assign, readwrite, nonatomic) IBInspectable CGFloat rightMenuPortraitContentViewDistanceSide;
+@property (assign, readwrite, nonatomic) IBInspectable CGFloat leftMenuLandscapeContentViewDistanceTop;
+@property (assign, readwrite, nonatomic) IBInspectable CGFloat leftMenuLandscapeContentViewDistanceBottom;
+@property (assign, readwrite, nonatomic) IBInspectable CGFloat leftMenuLandscapeContentViewDistanceSide;
+@property (assign, readwrite, nonatomic) IBInspectable CGFloat rightMenuLandscapeContentViewDistanceTop;
+@property (assign, readwrite, nonatomic) IBInspectable CGFloat rightMenuLandscapeContentViewDistanceBottom;
+@property (assign, readwrite, nonatomic) IBInspectable CGFloat rightMenuLandscapeContentViewDistanceSide;
 
 - (id)initWithContentViewController:(UIViewController *)contentViewController
              leftMenuViewController:(UIViewController *)leftMenuViewController

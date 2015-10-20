@@ -27,6 +27,12 @@
 #import "UIViewController+RESideMenu.h"
 #import "RECommonFunctions.h"
 
+typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
+{
+    RESideMenuActiveSideLeft,
+    RESideMenuActiveSideRight,
+};
+
 @interface RESideMenu ()
 
 @property (strong, readwrite, nonatomic) UIImageView *backgroundImageView;
@@ -38,6 +44,35 @@
 @property (strong, readwrite, nonatomic) UIView *menuViewContainer;
 @property (strong, readwrite, nonatomic) UIView *contentViewContainer;
 @property (assign, readwrite, nonatomic) BOOL didNotifyDelegate;
+
+@property (assign, readwrite, nonatomic) RESideMenuActiveSide activeSide;
+
+@property (assign, readonly, nonatomic) CGFloat contentViewWidth;
+@property (assign, readonly, nonatomic) CGFloat contentViewHeight;
+@property (assign, readonly, nonatomic) CGFloat contentViewOffsetCenterX;
+@property (assign, readonly, nonatomic) CGFloat contentViewOffsetCenterY;
+
+@property (assign, readonly, nonatomic) CGFloat contentViewScaleValue;
+
+@property (assign, readonly, nonatomic) CGFloat contentViewInPortraitScale;
+@property (assign, readonly, nonatomic) CGFloat contentViewInPortraitOffsetCenterX;
+@property (assign, readonly, nonatomic) CGFloat contentViewInPortraitOffsetCenterY;
+@property (assign, readonly, nonatomic) CGFloat contentViewInLandscapeScaleValue;
+@property (assign, readonly, nonatomic) CGFloat contentViewInLandscapeOffsetCenterX;
+@property (assign, readonly, nonatomic) CGFloat contentViewInLandscapeOffsetCenterY;
+
+@property (assign, readonly, nonatomic) CGFloat leftMenuPortraitContentViewScale;
+@property (assign, readonly, nonatomic) CGFloat leftMenuPortraitContentViewOffsetCenterX;
+@property (assign, readonly, nonatomic) CGFloat leftMenuPortraitContentViewOffsetCenterY;
+@property (assign, readonly, nonatomic) CGFloat rightMenuPortraitContentViewScale;
+@property (assign, readonly, nonatomic) CGFloat rightMenuPortraitContentViewOffsetCenterX;
+@property (assign, readonly, nonatomic) CGFloat rightMenuPortraitContentViewOffsetCenterY;
+@property (assign, readonly, nonatomic) CGFloat leftMenuLandscapeContentViewScale;
+@property (assign, readonly, nonatomic) CGFloat leftMenuLandscapeContentViewOffsetCenterX;
+@property (assign, readonly, nonatomic) CGFloat leftMenuLandscapeContentViewOffsetCenterY;
+@property (assign, readonly, nonatomic) CGFloat rightMenuLandscapeContentViewScale;
+@property (assign, readonly, nonatomic) CGFloat rightMenuLandscapeContentViewOffsetCenterX;
+@property (assign, readonly, nonatomic) CGFloat rightMenuLandscapeContentViewOffsetCenterY;
 
 @end
 
@@ -112,9 +147,23 @@
     _contentViewShadowOpacity = 0.4f;
     _contentViewShadowRadius = 8.0f;
     _contentViewFadeOutAlpha = 1.0f;
-    _contentViewInLandscapeOffsetCenterX = 30.f;
-    _contentViewInPortraitOffsetCenterX  = 30.f;
-    _contentViewScaleValue = 0.7f;
+
+//    self.contentViewInLandscapeOffsetCenterX = 30.f;
+//    self.contentViewInPortraitOffsetCenterX  = 30.f;
+//    self.contentViewScaleValue = 0.7f;
+    
+    _leftMenuPortraitContentViewDistanceTop = 50;
+    _leftMenuPortraitContentViewDistanceBottom = 50;
+    _leftMenuPortraitContentViewDistanceSide = 50;
+    _rightMenuPortraitContentViewDistanceTop = 50;
+    _rightMenuPortraitContentViewDistanceBottom = 50;
+    _rightMenuPortraitContentViewDistanceSide = 50;
+    _leftMenuLandscapeContentViewDistanceTop = 50;
+    _leftMenuLandscapeContentViewDistanceBottom = 50;
+    _leftMenuLandscapeContentViewDistanceSide = 50;
+    _rightMenuLandscapeContentViewDistanceTop = 50;
+    _rightMenuLandscapeContentViewDistanceBottom = 50;
+    _rightMenuLandscapeContentViewDistanceSide = 50;
 }
 
 #pragma mark -
@@ -274,6 +323,9 @@
     if (!self.leftMenuViewController) {
         return;
     }
+    
+    self.activeSide = RESideMenuActiveSideLeft;
+    
     [self.leftMenuViewController beginAppearanceTransition:YES animated:YES];
     self.leftMenuViewController.view.hidden = NO;
     self.rightMenuViewController.view.hidden = YES;
@@ -288,13 +340,9 @@
         } else {
             self.contentViewContainer.transform = CGAffineTransformIdentity;
         }
-        
-        if (NSFoundationVersionNumber > NSFoundationVersionNumber_iOS_7_1) {
-            self.contentViewContainer.center = CGPointMake((UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation]) ? self.contentViewInLandscapeOffsetCenterX + CGRectGetWidth(self.view.frame) : self.contentViewInPortraitOffsetCenterX + CGRectGetWidth(self.view.frame)), self.contentViewContainer.center.y);
-        } else {
-            self.contentViewContainer.center = CGPointMake((UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation]) ? self.contentViewInLandscapeOffsetCenterX + CGRectGetHeight(self.view.frame) : self.contentViewInPortraitOffsetCenterX + CGRectGetWidth(self.view.frame)), self.contentViewContainer.center.y);
-        }
 
+        self.contentViewContainer.center = CGPointMake(self.contentViewOffsetCenterX + self.contentViewWidth,
+                                                       self.contentViewOffsetCenterY + self.contentViewContainer.center.y);
         self.menuViewContainer.alpha = !self.fadeMenuView ?: 1.0f;
         self.contentViewContainer.alpha = self.contentViewFadeOutAlpha;
         self.menuViewContainer.transform = CGAffineTransformIdentity;
@@ -321,6 +369,9 @@
     if (!self.rightMenuViewController) {
         return;
     }
+
+    self.activeSide = RESideMenuActiveSideRight;
+
     [self.rightMenuViewController beginAppearanceTransition:YES animated:YES];
     self.leftMenuViewController.view.hidden = YES;
     self.rightMenuViewController.view.hidden = NO;
@@ -336,7 +387,8 @@
         } else {
             self.contentViewContainer.transform = CGAffineTransformIdentity;
         }
-        self.contentViewContainer.center = CGPointMake((UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation]) ? -self.contentViewInLandscapeOffsetCenterX : -self.contentViewInPortraitOffsetCenterX), self.contentViewContainer.center.y);
+        self.contentViewContainer.center = CGPointMake(-self.contentViewOffsetCenterX,
+                                                       self.contentViewOffsetCenterY + self.contentViewContainer.center.y);
         
         self.menuViewContainer.alpha = !self.fadeMenuView ?: 1.0f;
         self.contentViewContainer.alpha = self.contentViewFadeOutAlpha;
@@ -797,13 +849,11 @@
         
         CGPoint center;
         if (self.leftMenuVisible) {
-            if (NSFoundationVersionNumber > NSFoundationVersionNumber_iOS_7_1) {
-                center = CGPointMake((UIDeviceOrientationIsLandscape([UIDevice currentDevice].orientation) ? self.contentViewInLandscapeOffsetCenterX + CGRectGetWidth(self.view.frame) : self.contentViewInPortraitOffsetCenterX + CGRectGetWidth(self.view.frame)), self.contentViewContainer.center.y);
-            } else {
-                center = CGPointMake((UIDeviceOrientationIsLandscape([UIDevice currentDevice].orientation) ? self.contentViewInLandscapeOffsetCenterX + CGRectGetHeight(self.view.frame) : self.contentViewInPortraitOffsetCenterX + CGRectGetWidth(self.view.frame)), self.contentViewContainer.center.y);
-            }
+            center = CGPointMake(self.contentViewOffsetCenterX + self.contentViewWidth,
+                                 self.contentViewOffsetCenterY + self.contentViewContainer.center.y);
         } else {
-            center = CGPointMake((UIDeviceOrientationIsLandscape([UIDevice currentDevice].orientation) ? -self.contentViewInLandscapeOffsetCenterX : -self.contentViewInPortraitOffsetCenterX), self.contentViewContainer.center.y);
+            center = CGPointMake(-self.contentViewOffsetCenterX,
+                                 self.contentViewOffsetCenterY + self.contentViewContainer.center.y);
         }
         
         self.contentViewContainer.center = center;
@@ -856,5 +906,86 @@
     );
     return statusBarAnimation;
 }
+
+#pragma mark -
+#pragma mark Offset calculations
+
+- (CGFloat)contentViewWidth
+{
+    return (NSFoundationVersionNumber > NSFoundationVersionNumber_iOS_7_1) || UIInterfaceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation])
+        ? CGRectGetWidth(self.view.frame)
+        : CGRectGetHeight(self.view.frame);
+}
+
+- (CGFloat)contentViewHeight
+{
+    return (NSFoundationVersionNumber > NSFoundationVersionNumber_iOS_7_1) || UIInterfaceOrientationIsPortrait([[UIApplication sharedApplication] statusBarOrientation])
+        ? CGRectGetHeight(self.view.frame)
+        : CGRectGetWidth(self.view.frame);
+}
+
+- (CGFloat)contentViewScaleValue
+{
+    return UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation])
+        ? self.contentViewInLandscapeScale
+        : self.contentViewInPortraitScale;
+}
+
+- (CGFloat)contentViewOffsetCenterX
+{
+    return UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation])
+        ? self.contentViewInLandscapeOffsetCenterX
+        : self.contentViewInPortraitOffsetCenterX;
+}
+
+- (CGFloat)contentViewOffsetCenterY
+{
+    return UIInterfaceOrientationIsLandscape([[UIApplication sharedApplication] statusBarOrientation])
+        ? self.contentViewInLandscapeOffsetCenterY
+        : self.contentViewInPortraitOffsetCenterY;
+}
+
+#pragma mark -
+#pragma mark Legacy offset handling
+
+#define RESideMenu_Define_Offsets(orientation__, property__) \
+    - (CGFloat)contentViewIn ## orientation__ ## property__ \
+    { \
+        return _activeSide == RESideMenuActiveSideLeft \
+            ? self.leftMenu ## orientation__ ## ContentView ## property__ \
+            : self.rightMenu ## orientation__ ## ContentView ## property__; \
+    }
+
+RESideMenu_Define_Offsets(Portrait, Scale)
+RESideMenu_Define_Offsets(Portrait, OffsetCenterX)
+RESideMenu_Define_Offsets(Portrait, OffsetCenterY)
+RESideMenu_Define_Offsets(Landscape, Scale)
+RESideMenu_Define_Offsets(Landscape, OffsetCenterX)
+RESideMenu_Define_Offsets(Landscape, OffsetCenterY)
+
+#undef RESideMenu_Define_Offsets
+
+#pragma mark - New offset calculations
+
+#define RESideMenu_Define_Offsets(mode__) \
+    - (CGFloat)mode__ ## ContentViewScale \
+    { \
+        return 1.0f - (self.mode__ ## ContentViewDistanceTop + self.mode__ ## ContentViewDistanceBottom) / self.contentViewHeight; \
+    } \
+    - (CGFloat)mode__ ## ContentViewOffsetCenterX \
+    { \
+        return self.contentViewWidth * self.mode__ ## ContentViewScale / 2 - self.mode__ ## ContentViewDistanceSide; \
+    } \
+    - (CGFloat)mode__ ## ContentViewOffsetCenterY \
+    { \
+        return (self.mode__ ## ContentViewDistanceTop - self.mode__ ## ContentViewDistanceBottom) / 2; \
+    }
+
+RESideMenu_Define_Offsets(leftMenuPortrait)
+RESideMenu_Define_Offsets(leftMenuLandscape)
+RESideMenu_Define_Offsets(rightMenuPortrait)
+RESideMenu_Define_Offsets(rightMenuLandscape)
+
+#undef RESideMenu_Define_Offsets
 
 @end
