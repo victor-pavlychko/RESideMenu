@@ -402,7 +402,12 @@ typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
             [self.delegate sideMenu:self didShowMenuViewController:self.rightMenuViewController];
         }
         
-        self.visible = !(self.contentViewContainer.frame.size.width == self.view.bounds.size.width && self.contentViewContainer.frame.size.height == self.view.bounds.size.height && self.contentViewContainer.frame.origin.x == 0 && self.contentViewContainer.frame.origin.y == 0);
+        self.visible = !(YES
+            && self.contentViewContainer.frame.size.width == self.view.bounds.size.width
+            && self.contentViewContainer.frame.size.height == self.view.bounds.size.height
+            && CGRectGetMidX(self.contentViewContainer.frame) == CGRectGetMidX(self.view.bounds)
+            && CGRectGetMidY(self.contentViewContainer.frame) == CGRectGetMidY(self.view.bounds)
+        );
         self.rightMenuVisible = self.visible;
         [[UIApplication sharedApplication] endIgnoringInteractionEvents];
         [self addContentViewControllerMotionEffects];
@@ -616,8 +621,8 @@ typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
     if (recognizer.state == UIGestureRecognizerStateBegan) {
         [self updateContentViewShadow];
         
-        self.originalPoint = CGPointMake(self.contentViewContainer.center.x - CGRectGetWidth(self.contentViewContainer.bounds) / 2.0,
-                                         self.contentViewContainer.center.y - CGRectGetHeight(self.contentViewContainer.bounds) / 2.0);
+        self.originalPoint = CGPointMake(self.contentViewContainer.center.x - CGRectGetMidX(self.contentViewContainer.bounds),
+                                         self.contentViewContainer.center.y - CGRectGetMidY(self.contentViewContainer.bounds));
         self.menuViewContainer.transform = CGAffineTransformIdentity;
         if (self.scaleBackgroundImageView) {
             self.backgroundImageView.transform = CGAffineTransformIdentity;
@@ -630,20 +635,13 @@ typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
     }
     
     if (recognizer.state == UIGestureRecognizerStateChanged) {
-        CGFloat delta = 0;
-        if (self.visible) {
-            delta = self.originalPoint.x != 0 ? (point.x + self.originalPoint.x) / self.originalPoint.x : 0;
-        } else {
-            delta = point.x / self.view.frame.size.width;
-        }
-        delta = MIN(fabs(delta), 1.6);
-        
         if (!self.bouncesHorizontally && self.visible) {
-            if (self.contentViewContainer.frame.origin.x > self.contentViewContainer.frame.size.width / 2.0)
+            if (self.contentViewContainer.frame.origin.x > self.contentViewContainer.frame.size.width / 2.0) {
                 point.x = MIN(0.0, point.x);
-            
-            if (self.contentViewContainer.frame.origin.x < -(self.contentViewContainer.frame.size.width / 2.0))
+            }
+            if (self.contentViewContainer.frame.origin.x < -(self.contentViewContainer.frame.size.width / 2.0)) {
                 point.x = MAX(0.0, point.x);
+            }
         }
 
         // Limit size
@@ -669,6 +667,32 @@ typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
             }
             self.didNotifyDelegate = YES;
         }
+
+        CGPoint center;
+        CGFloat offset;
+        if (self.activeSide == RESideMenuActiveSideLeft) {
+            center = CGPointMake(self.contentViewOffsetCenterX + self.contentViewWidth,
+                                 self.contentViewOffsetCenterY + self.contentViewHeight / 2);
+            offset = point.x;
+        } else {
+            center = CGPointMake(-self.contentViewOffsetCenterX,
+                                 self.contentViewOffsetCenterY + self.contentViewHeight / 2);
+            offset = -point.x;
+        }
+
+        if (self.visible) {
+            offset = fabs(center.x - CGRectGetMidX(self.view.bounds)) - point.x;
+        } else {
+            offset = point.x;
+        }
+
+        CGFloat delta = offset / fabs(center.x - CGRectGetMidX(self.view.bounds));
+
+        delta = MIN(fabs(delta), 1.6);
+
+//        CGFloat self.contentViewScale;
+//        CGFloat self.contentViewOffsetCenterX;
+//        CGFloat self.contentViewOffsetCenterX;
         
         CGFloat contentViewScale = self.scaleContentView ? 1 - ((1 - self.contentViewScaleValue) * delta) : 1;
         CGFloat backgroundViewScale = 1.7f - (0.7f * delta);
@@ -702,23 +726,23 @@ typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
             contentViewScale = (1 - (contentViewScale - 1));
         }
 
-        CGFloat contentViewOffsetCenterY = self.leftMenuVisible || self.rightMenuVisible
-            ? (-(1 - delta) * self.contentViewOffsetCenterY)
-            : (delta * self.contentViewOffsetCenterY);
+        CGFloat contentViewOffsetCenterY = self.visible
+            ? (-(1 - MIN(1, delta)) * self.contentViewOffsetCenterY)
+            : (MIN(1, delta) * self.contentViewOffsetCenterY);
 
         self.contentViewContainer.transform = CGAffineTransformMakeTranslation(0, 0);
-        self.contentViewContainer.transform = CGAffineTransformScale(self.contentViewContainer.transform, contentViewScale, contentViewScale);
         self.contentViewContainer.transform = CGAffineTransformTranslate(self.contentViewContainer.transform, point.x, contentViewOffsetCenterY);
-
-        self.leftMenuViewController.view.hidden = self.contentViewContainer.frame.origin.x < 0;
-        self.rightMenuViewController.view.hidden = self.contentViewContainer.frame.origin.x > 0;
+        self.contentViewContainer.transform = CGAffineTransformScale(self.contentViewContainer.transform, contentViewScale, contentViewScale);
         
-        if (!self.leftMenuViewController && self.contentViewContainer.frame.origin.x > 0) {
+        self.leftMenuViewController.view.hidden = CGRectGetMidX(self.contentViewContainer.frame) < CGRectGetMidX(self.view.bounds);
+        self.rightMenuViewController.view.hidden = CGRectGetMidX(self.contentViewContainer.frame) > CGRectGetMidX(self.view.bounds);
+        
+        if (!self.leftMenuViewController && CGRectGetMidX(self.contentViewContainer.frame) > CGRectGetMidX(self.view.bounds)) {
             self.contentViewContainer.transform = CGAffineTransformIdentity;
             self.contentViewContainer.frame = self.view.bounds;
             self.visible = NO;
             self.leftMenuVisible = NO;
-        } else  if (!self.rightMenuViewController && self.contentViewContainer.frame.origin.x < 0) {
+        } else  if (!self.rightMenuViewController && CGRectGetMidX(self.contentViewContainer.frame) < CGRectGetMidX(self.view.bounds)) {
             self.contentViewContainer.transform = CGAffineTransformIdentity;
             self.contentViewContainer.frame = self.view.bounds;
             self.visible = NO;
@@ -731,17 +755,17 @@ typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
    if (recognizer.state == UIGestureRecognizerStateEnded) {
         self.didNotifyDelegate = NO;
         if (self.panMinimumOpenThreshold > 0 && (
-            (self.contentViewContainer.frame.origin.x < 0 && self.contentViewContainer.frame.origin.x > -((NSInteger)self.panMinimumOpenThreshold)) ||
-            (self.contentViewContainer.frame.origin.x > 0 && self.contentViewContainer.frame.origin.x < self.panMinimumOpenThreshold))
-            ) {
+            (CGRectGetMidX(self.contentViewContainer.frame) < CGRectGetMidX(self.view.bounds) && CGRectGetMidX(self.contentViewContainer.frame) > CGRectGetMidX(self.view.bounds) - self.panMinimumOpenThreshold) ||
+            (CGRectGetMidX(self.contentViewContainer.frame) > CGRectGetMidX(self.view.bounds) && CGRectGetMidX(self.contentViewContainer.frame) < CGRectGetMidX(self.view.bounds) + self.panMinimumOpenThreshold))
+        ) {
             [self hideMenuViewController];
         }
-        else if (self.contentViewContainer.frame.origin.x == 0) {
+        else if (CGRectGetMidX(self.contentViewContainer.frame) == CGRectGetMidX(self.view.bounds)) {
             [self hideMenuViewControllerAnimated:NO];
         }
         else {
             if ([recognizer velocityInView:self.view].x > 0) {
-                if (self.contentViewContainer.frame.origin.x < 0) {
+                if (CGRectGetMidX(self.contentViewContainer.frame) < CGRectGetMidX(self.view.bounds)) {
                     [self hideMenuViewController];
                 } else {
                     if (self.leftMenuViewController) {
@@ -749,7 +773,7 @@ typedef NS_ENUM(NSUInteger, RESideMenuActiveSide)
                     }
                 }
             } else {
-                if (self.contentViewContainer.frame.origin.x < 20) {
+                if (CGRectGetMidX(self.contentViewContainer.frame) < CGRectGetMidX(self.view.bounds) + 20) {
                     if (self.rightMenuViewController) {
                         [self showRightMenuViewController];
                     }
